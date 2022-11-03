@@ -150,4 +150,18 @@ final class FileTests: XCTestCase {
             XCTAssertEqual(res.status, .notFound)
         }
     }
+    
+    func testCompressedFile() throws {
+        let app = Application(.testing)
+        defer { app.shutdown() }
+
+        let path = #file.split(separator: "/").dropLast().joined(separator: "/")
+        app.middleware.use(FileMiddleware(publicDirectory: "/" + path))
+
+        try app.test(.GET, "/Utilities/gzipTest.txt.gz") { res in
+            XCTAssertEqual(res.status, .ok)
+            XCTAssertEqual(res.headers.contentType, HTTPMediaType.plainText)
+            XCTAssertEqual(res.headers[HTTPHeaders.Name.contentEncoding].first, "gzip")
+        }
+    }
 }

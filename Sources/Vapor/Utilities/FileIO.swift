@@ -174,11 +174,27 @@ public struct FileIO {
         }
         // Set Content-Type header based on the media type
         // Only set Content-Type if file not modified and returned above.
-        if
-            let fileExtension = path.components(separatedBy: ".").last,
-            let type = mediaType ?? HTTPMediaType.fileExtension(fileExtension)
-        {
-            response.headers.contentType = type
+        let pathComponents = path.components(separatedBy: ".")
+        if var fileExtension = pathComponents.last {
+            // TODO: Move elsewhere
+            let HTTPEncodedTypeFileExtension = [
+                "gz": "gzip",
+                "Z": "compress",
+                "dfl": "deflate",
+                "br": "br"
+            ]
+            
+            if
+                let compressedType = HTTPCompressedTypeFileExtension[fileExtension],
+                pathComponents.count > 2
+            {
+                fileExtension = pathComponents[pathComponents.count-2]
+                response.headers.add(name: .contentEncoding, value: compressedType)
+            }
+            
+            if let type = mediaType ?? HTTPMediaType.fileExtension(fileExtension) {
+                response.headers.contentType = type
+            }
         }
         response.body = .init(stream: { stream in
             self.read(path: path, fromOffset: offset, byteCount: byteCount, chunkSize: chunkSize) { chunk in
